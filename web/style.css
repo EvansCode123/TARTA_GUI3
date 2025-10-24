@@ -482,3 +482,40 @@ label { font-size: 1.3rem; }
 }
 
 #welcome-screen.active { display: flex; }
+
+
+
+/* ===========================================
+   Accessibility Typography Upgrade
+   - Heavier weights for readability
+   - Larger type for key screens (PM & View)
+   - Bigger small buttons in View Spectra
+   =========================================== */
+body { font-weight: 500; }
+h1, h2, h3, #header-title { font-weight: 700; }
+.btn { font-weight: 700; letter-spacing: 0.2px; }
+label, .status, input, select, .subtitle, .version { font-weight: 600; }
+
+/* General paragraph-like elements inside screens */
+.screen p { font-size: 1.35rem; line-height: 1.35; }
+
+/* PM screen: larger labels, numbers, and status */
+#pm-screen label { font-size: 1.45rem; }
+#pm-screen .status { font-size: 1.45rem; }
+#pm-current, #pm-max { font-size: 1.5rem; font-weight: 700; }
+#pm-bar { height: 18px; border-radius: 12px; }
+
+/* View Spectra: enlarge controls and plot vicinity text */
+#view-screen .btn.small { font-size: 1.35rem; min-height: 64px; padding: 0.9rem 1.1rem; }
+#scan-list { font-size: 1.5rem; padding: 1.1rem; }
+#scan-list option { font-size: 1.5rem; }
+
+/* Slight bump for all selects/inputs globally to maintain consistency */
+input, select { font-size: 1.45rem; }
+
+/* Keep menus big and bold */
+#menu-screen .btn:not(.secondary),
+#community-screen .btn:not(.secondary) {
+  font-size: 1.65rem;
+  font-weight: 800;
+}
