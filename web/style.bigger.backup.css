@@ -18,7 +18,7 @@ header {
   position: fixed;
   top: 0;
   width: 100%;
-  height: 64px;
+  height: 50px;
   background: #003366;
   color: white;
   display: flex;
@@ -27,7 +27,8 @@ header {
   z-index: 1000;
   box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
-header h1 { font-size: 1.5rem;
+header h1 {
+  font-size: 1.1rem;
 }
 
 /* Screen Layout */
@@ -36,7 +37,7 @@ header h1 { font-size: 1.5rem;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 80px 26px 26px;
+  padding: 70px 20px 20px;
   min-height: 100vh;
   width: 100%;
 }
@@ -52,7 +53,7 @@ header h1 { font-size: 1.5rem;
 .subtitle, .version {
   color: #666;
   margin-bottom: 0.4rem;
-  font-size: 1.15rem;
+  font-size: 0.95rem;
 }
 
 /* Buttons */
@@ -62,9 +63,8 @@ header h1 { font-size: 1.5rem;
   margin: 0.75rem 0;
   width: 85%;
   max-width: 350px;
-  padding: 1.2rem 1.4rem;
-  min-height: 72px;
-  font-size: 1.5rem;
+  padding: 1rem;
+  font-size: 1.25rem;
   border: none;
   border-radius: 12px;
   cursor: pointer;
@@ -131,8 +131,8 @@ label {
   max-width: 350px;
 }
 input, select {
-  padding: 1.2rem 1rem;
-  font-size: 1.35rem;
+  padding: 1rem;
+  font-size: 1.25rem;
   border: 1px solid #ccc;
   border-radius: 8px;
   width: 100%;
@@ -181,7 +181,7 @@ progress::-webkit-progress-value {
 /* Status Text */
 .status {
   margin-top: 1rem;
-  font-size: 1.35rem;
+  font-size: 1rem;
 }
 .status.connected {
   color: #080;
@@ -201,7 +201,8 @@ progress::-webkit-progress-value {
   background-color: #fff;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
-.status-box h3 { font-size: 1.4rem;
+.status-box h3 {
+  font-size: 1rem;
   color: #555;
   margin-bottom: 0.25rem;
 }
@@ -332,7 +333,7 @@ progress::-webkit-progress-value {
    =============================== */
 
 :root {
-  --touch-rem: clamp(22px, 3.2vw, 32px);
+  --touch-rem: clamp(20px, 2.8vw, 28px);
   --touch-gap: clamp(12px, 2vmin, 18px);
 }
 
@@ -340,17 +341,16 @@ html { font-size: var(--touch-rem); }
 
 /* Header readability */
 header { height: 56px; }
-header h1 { font-size: 1.5rem; letter-spacing: 0.3px; }
+header h1 { font-size: 1.35rem; letter-spacing: 0.3px; }
 
 /* General screen padding for fixed header */
-.screen { padding: 80px 26px 26px; }
+.screen { padding: 72px 24px 24px; }
 
 /* Bigger buttons for touch */
 .btn {
-  min-height: 72px;
-  padding: 1.2rem 1.4rem;
-  min-height: 72px;
-  font-size: 1.5rem;
+  min-height: 64px;
+  padding: 1.05rem 1.2rem;
+  font-size: 1.4rem;
   width: 100%;
   max-width: 720px;
 }
@@ -366,15 +366,15 @@ header h1 { font-size: 1.5rem; letter-spacing: 0.3px; }
 
 /* Inputs & selects: larger and easier to hit */
 input, select {
-  padding: 1.2rem 1rem;
-  font-size: 1.35rem;
+  padding: 1.1rem 1rem;
+  font-size: 1.25rem;
 }
 
 /* Welcome screen visuals */
 .logo { width: min(420px, 55vw); margin-bottom: 0.6rem; }
-.subtitle { font-size: 1.25rem; margin-bottom: 0.2rem; }
-.version { font-size: 1.15rem; }
-.status { font-size: 1.35rem; }
+.subtitle { font-size: 1.05rem; margin-bottom: 0.2rem; }
+.version { font-size: 1rem; }
+.status { font-size: 1.25rem; }
 
 /* Expert & Community menus as responsive grids */
 #menu-screen.active, #community-screen.active { display: grid; 
@@ -406,78 +406,14 @@ input, select {
 }
 
 /* Slight adjustments on very short heights */
-@media (max-height: 650px) { header { height: 58px; } .screen { padding-top: 70px; } .btn { min-height: 64px; font-size: 1.4rem; }
+@media (max-height: 650px) {
+  header { height: 52px; }
   .screen { padding-top: 64px; }
-  .btn { min-height: 72px; font-size: 1.5rem; }
+  .btn { min-height: 60px; font-size: 1.25rem; }
 }
 
 
 /* Typography scaling for readability */
-h2 { font-size: 1.6rem; }
-h3 { font-size: 1.4rem; }
-label { font-size: 1.3rem; }
-
-
-
-/* =====================================================
-   MAIN MENUS: Fill space with larger, easy-to-tap tiles
-   - Welcome screen: evenly spaced, big buttons
-   - Expert & Community menus: larger grid tiles
-   ===================================================== */
-
-/* Welcome screen: distribute content vertically to fill space */
-#welcome-screen {
-  display: flex !important;
-  flex-direction: column;
-  justify-content: space-evenly;
-  align-items: center;
-  min-height: calc(100vh - 70px); /* header + padding allowance */
-}
-
-/* Big, full-width welcome buttons */
-#welcome-screen .btn {
-  width: min(92vw, 860px);
-  max-width: none;
-  min-height: 108px;
-  font-size: 1.6rem;
-}
-
-/* Scale up brand elements without overwhelming */
-#welcome-screen .logo { width: min(60vw, 520px); }
-#welcome-screen .subtitle { font-size: 1.35rem; }
-#welcome-screen .version { font-size: 1.2rem; }
-
-/* Expert & Community: bigger grid tiles */
-#menu-screen.active,
-#community-screen.active {
-  grid-template-columns: repeat(auto-fit, minmax(380px, 1fr)); /* bigger columns */
-  gap: clamp(16px, 2.4vmin, 24px);
-}
-
-/* Make primary menu actions tall and prominent */
-#menu-screen .btn:not(.secondary),
-#community-screen .btn:not(.secondary) {
-  min-height: 112px;
-  font-size: 1.6rem;
-  align-self: stretch;
-  justify-self: stretch;
-}
-
-/* Keep Back/Status compact */
-#menu-screen .btn.secondary,
-#community-screen .btn.secondary {
-  min-height: 72px;
-  font-size: 1.4rem;
-}
-
-/* Ensure status spans the grid but doesn't expand vertically */
-#menu-screen .status,
-#community-screen .status {
-  align-self: start;
-}
-
-/* Slightly larger labels inside menus for balance */
-#menu-screen label,
-#community-screen label {
-  font-size: 1.35rem;
-}
+h2 { font-size: 1.4rem; }
+h3 { font-size: 1.25rem; }
+label { font-size: 1.25rem; }
