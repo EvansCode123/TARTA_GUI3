@@ -427,7 +427,6 @@ label { font-size: 1.3rem; }
 
 /* Welcome screen: distribute content vertically to fill space */
 #welcome-screen {
-  display: flex !important;
   flex-direction: column;
   justify-content: space-evenly;
   align-items: center;
@@ -481,3 +480,5 @@ label { font-size: 1.3rem; }
 #community-screen label {
   font-size: 1.35rem;
 }
+
+#welcome-screen.active { display: flex; }
