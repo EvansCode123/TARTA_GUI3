@@ -289,11 +289,7 @@ function loadScan(path) {
       name: 'Peaks'
     };
 
-    Plotly.newPlot('plot', [trace, peaks], {
-      margin: {t: 30},
-      xaxis: {title: 'Wavelength'},
-      yaxis: {title: 'Intensity'}
-    });
+    Plotly.newPlot('plot', [trace, peaks], {  margin: {t: 30, l: 60, r: 20, b: 60},  font: {size: 20},  xaxis: {title: {text: 'Wavelength', font: {size: 22}}, tickfont: {size: 18}},  yaxis: {title: {text: 'Intensity', font: {size: 22}}, tickfont: {size: 18}},  legend: {font: {size: 18}}});
   });
 }
 
@@ -396,11 +392,7 @@ function loadAverage() {
       name: 'Peaks',
       marker: {color: 'red', size: 6}
     };
-    Plotly.newPlot('plot', [trace, peaks], {
-      margin: {t: 30},
-      xaxis: {title: 'Wavelength'},
-      yaxis: {title: 'Intensity'}
-    });
+    Plotly.newPlot('plot', [trace, peaks], {  margin: {t: 30, l: 60, r: 20, b: 60},  font: {size: 20},  xaxis: {title: {text: 'Wavelength', font: {size: 22}}, tickfont: {size: 18}},  yaxis: {title: {text: 'Intensity', font: {size: 22}}, tickfont: {size: 18}},  legend: {font: {size: 18}}});
   });
 }
 
