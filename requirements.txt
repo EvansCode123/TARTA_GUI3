@@ -1,0 +1,10 @@
+eel
+pandas
+numpy
+scipy
+pytz
+psutil
+ntplib
+lgpio
+adafruit-blinka
+adafruit-circuitpython-mcp4725
