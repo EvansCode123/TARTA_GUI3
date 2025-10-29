@@ -185,6 +185,38 @@ def monitor_usb_drives():
             print(f"Error monitoring USB drives: {e}")
         
         time.sleep(2)  # Check every 2 seconds
+        
+def trigger_fullscreen():
+    """
+    Waits for the 'Eel' window to appear, then uses wmctrl to
+    set its state to fullscreen. This is more reliable than time.sleep().
+    """
+    try:
+        # 1. Wait for the window to exist.
+        #    '--sync' makes xdotool wait until a matching window is found.
+        #    We store the window ID it finds in a variable.
+        print("Waiting for browser window...")
+        window_id = subprocess.check_output(
+            ["xdotool", "search", "--sync", "--onlyvisible", "--name", "Eel", "getwindowfocus"],
+            text=True
+        ).strip()
+        
+        print(f"Window found (ID: {window_id}). Setting fullscreen.")
+
+        # 2. Use wmctrl to set the window state to fullscreen.
+        #    -i  : Use a numerical window ID
+        #    -r  : Specify the window ID
+        #    -b  : Add/remove a property
+        #    add,fullscreen : Add the 'fullscreen' property
+        subprocess.run(
+            ["wmctrl", "-i", "-r", window_id, "-b", "add,fullscreen"],
+            check=True
+        )
+        print("Fullscreen set successfully.")
+
+    except Exception as e:
+        print(f"WARNING: Could not force fullscreen. Is xdotool/wmctrl installed? Error: {e}")
+
 
 @eel.expose
 def copy_data_to_usb(mount_point):
@@ -530,7 +562,17 @@ if __name__ == '__main__':
     try:
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
-        eel.start('index.html', mode='chrome', cmdline_args=['--kiosk'])
+
+        # --- THIS IS THE NEW PART ---
+        # Start the fullscreen trigger thread
+        fs_thread = threading.Thread(target=trigger_fullscreen, daemon=True)
+        fs_thread.start()
+        # -----------------------------
+
+        # Start Eel using the browser we found, but *without* the flags
+        # The fs_thread will handle making it fullscreen
+        eel.start('index.html', mode='chromium-browser') 
+        
     except (SystemExit, MemoryError, KeyboardInterrupt):
         print("UI closed, shutting down application.")
     finally:
