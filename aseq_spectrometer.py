@@ -457,7 +457,26 @@ class LR1:
             * self.calibration.irr_scaler
             * (self.parameters.exposure_time_ms * 100)
         )
+    
+    def connect_with_retry():
+    """
+    Continuously try to discover the LR1 spectrometer.
+    This will block until a connection is successful.
+    """
+    while True:
+        try:
+            # Try to find the device
+            spectro = LR1.discover()
+            # If found, return the device object
+            return spectro
+        except OSError as e:
+            # If not found, log it and wait 5 seconds to retry
+            LOGGER.info(f"Connection failed: {e}. Retrying in 5 seconds...")
+            time.sleep(5)
 
+# Demo Example Usage:
+if __name__ == "__main__":
+    # ... (the main block starts right after this)
 
 # Demo Example Usage:
 if __name__ == "__main__":
@@ -469,8 +488,16 @@ if __name__ == "__main__":
     # Create the base output directory if it doesn't exist
     base_output_dir = 'output'
     os.makedirs(base_output_dir, exist_ok=True)
+
+    # --- THIS IS THE KEY CHANGE ---
+    print("Attempting to connect to spectrometer... (will retry on failure)")
+    # This new function will loop until it finds a spectrometer
+    spectro_device = connect_with_retry()
+    # --- END OF CHANGE ---
     
-    with LR1.discover() as spectro:
+    # Once connected, the 'with' statement opens it and the rest
+    # of the script proceeds exactly as before.
+    with spectro_device as spectro:
         print(f"Connected to: {spectro}")
         
         # Configure external trigger for rising edge
@@ -509,39 +536,22 @@ if __name__ == "__main__":
                 frame = spectro.get_raw_frame()
                 scan_count += 1
                 
-                # --- START OF MODIFICATIONS ---
-
-                # Get the current datetime object
+                # --- File and folder path creation ---
                 now = datetime.datetime.now()
-                
-                # Create the month-year folder name (e.g., "1025" for Oct 2025)
                 month_year_folder = now.strftime('%m%y')
-                
-                # Create the full path for the new directory
                 output_dir = os.path.join(base_output_dir, month_year_folder)
-                
-                # Create this monthly directory if it doesn't exist
                 os.makedirs(output_dir, exist_ok=True)
                 
-                # Generate filename based on your new requested format
-                # YYYY-MM-DD T HH-MM-SS
                 filename_base = now.strftime('%Y-%m-%dT%H-%M-%S')
-                
-                # Create the final, full file path
-                # e.g., output/1025/2025-10-28T17-22-09.txt
                 filename = os.path.join(output_dir, f'{filename_base}.txt')
+                # --- End file path creation ---
                 
-                # --- END OF MODIFICATIONS ---
                 
-                
-                # Save to .txt file (still using comma as delimiter for clarity)
+                # Save to .txt file
                 if wavelengths is not None:
-                    # Save with wavelength and intensity columns
                     data = np.column_stack((wavelengths, frame))
-                    # We use .txt extension but keep comma delimiter
-                    np.savetxt(filename, data, delimiter=',', fmt='%.6f,%d') 
+                    np.savetxt(filename, data, delimiter=',', fmt='%.6f,%d')
                 else:
-                    # Save intensity only
                     np.savetxt(filename, frame, delimiter=',', fmt='%d')
                 
                 print(f"Scan {scan_count}: Saved to {filename} (Min: {frame.min()}, Max: {frame.max()}, Mean: {frame.mean():.1f})")
