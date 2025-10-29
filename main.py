@@ -188,26 +188,29 @@ def monitor_usb_drives():
         
 def trigger_fullscreen():
     """
-    Waits for the 'Eel' window to appear, then uses wmctrl to
+    Waits for the 'Spectrometer GUI' window to appear, then uses wmctrl to
     set its state to fullscreen. This is more reliable than time.sleep().
     """
+    search_string = "Spectrometer GUI"  # Your window title from index.html
     try:
         # 1. Wait for the window to exist.
-        #    '--sync' makes xdotool wait until a matching window is found.
-        #    We store the window ID it finds in a variable.
-        print("Waiting for browser window...")
-        window_id = subprocess.check_output(
-            ["xdotool", "search", "--sync", "--onlyvisible", "--name", "Eel", "getwindowfocus"],
-            text=True
-        ).strip()
+        #    We are now searching for a substring "Spectrometer GUI"
+        #    instead of an exact match.
+        print(f"Waiting for browser window containing: '{search_string}'")
         
+        # This command searches for a window *containing* the search string.
+        # It waits (--sync) and gets the first ID found.
+        window_id = subprocess.check_output(
+            ["xdotool", "search", "--sync", "--onlyvisible", "--name", f".*{search_string}.*"],
+            text=True
+        ).split('\n')[0].strip()
+        
+        if not window_id:
+             raise Exception("xdotool did not find a window ID.")
+
         print(f"Window found (ID: {window_id}). Setting fullscreen.")
 
         # 2. Use wmctrl to set the window state to fullscreen.
-        #    -i  : Use a numerical window ID
-        #    -r  : Specify the window ID
-        #    -b  : Add/remove a property
-        #    add,fullscreen : Add the 'fullscreen' property
         subprocess.run(
             ["wmctrl", "-i", "-r", window_id, "-b", "add,fullscreen"],
             check=True
