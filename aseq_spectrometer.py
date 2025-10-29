@@ -457,8 +457,7 @@ class LR1:
             * self.calibration.irr_scaler
             * (self.parameters.exposure_time_ms * 100)
         )
-    
-    def connect_with_retry():
+def connect_with_retry():
     """
     Continuously try to discover the LR1 spectrometer.
     This will block until a connection is successful.
@@ -474,9 +473,7 @@ class LR1:
             LOGGER.info(f"Connection failed: {e}. Retrying in 5 seconds...")
             time.sleep(5)
 
-# Demo Example Usage:
-if __name__ == "__main__":
-    # ... (the main block starts right after this)
+    
 
 # Demo Example Usage:
 if __name__ == "__main__":
@@ -559,3 +556,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print(f"\n\nStopped. Total scans captured: {scan_count}")
             print(f"Files saved in 'output/' directory, sorted by month.")
+
