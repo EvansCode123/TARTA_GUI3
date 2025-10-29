@@ -70,8 +70,9 @@ def set_rtc_time(dt):
     except Exception as e:
         print(f"An error occurred while setting the RTC time: {e}")
 
-def verify_rtc_time():
-    """Reads the time back from the RTC to confirm it was set correctly."""
+# --- MODIFIED: Renamed function to be more general ---
+def get_and_print_rtc_time():
+    """Reads the time from the RTC and prints it."""
     def bcd_to_dec(bcd):
         return (bcd // 16 * 10) + (bcd % 16)
         
@@ -88,9 +89,11 @@ def verify_rtc_time():
         year = bcd_to_dec(time_data[6]) + 2000
         
         read_back_time = datetime.datetime(year, month, date, hour, minute, sec)
-        print(f"Verification: RTC time is now: {read_back_time.strftime('%Y-%m-%d %H:%M:%S')}")
+        # --- MODIFIED: Changed print message ---
+        print(f"Current RTC time is: {read_back_time.strftime('%Y-%m-%d %H:M:%S')}")
     except Exception as e:
-        print(f"Could not verify time after setting. Error: {e}")
+        # --- MODIFIED: Changed print message ---
+        print(f"Could not read time from RTC. Error: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Set the DS3231 RTC time.")
@@ -106,7 +109,7 @@ if __name__ == "__main__":
     if args.manual:
         print("Manual mode selected.")
         try:
-            correct_time = datetime.datetime.strptime(args.manual, '%Y-%m-%d %H:%M:%S')
+            correct_time = datetime.datetime.strptime(args.manual, '%Y-%m-%d %H:M:%S')
         except ValueError:
             print('Error: Manual time format is incorrect. Please use "YYYY-MM-DD HH:MM:SS".')
             exit(1)
@@ -114,10 +117,14 @@ if __name__ == "__main__":
         print("Automatic mode selected. Attempting to fetch time from the internet...")
         correct_time = get_internet_time()
 
+    # --- MODIFIED: This logic is now changed ---
     if correct_time:
         set_rtc_time(correct_time)
         time.sleep(1) # Pause before verifying
-        verify_rtc_time()
+        print("Verifying time after set...")
+        get_and_print_rtc_time()
     else:
-        print("Could not get a valid time. RTC was not updated.")
+        print("\nCould not get a valid time to set. RTC was not updated.")
+        print("Reading existing time from RTC instead...")
+        get_and_print_rtc_time() # This now runs on failure
         exit(1)
