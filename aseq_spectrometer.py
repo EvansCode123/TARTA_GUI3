@@ -457,6 +457,11 @@ class LR1:
             * self.calibration.irr_scaler
             * (self.parameters.exposure_time_ms * 100)
         )
+
+# --- END OF LR1 CLASS ---
+
+
+# --- connect_with_retry IS NOW A GLOBAL FUNCTION (CORRECTED) ---
 def connect_with_retry():
     """
     Continuously try to discover the LR1 spectrometer.
@@ -473,7 +478,7 @@ def connect_with_retry():
             LOGGER.info(f"Connection failed: {e}. Retrying in 5 seconds...")
             time.sleep(5)
 
-    
+# --- DUPLICATE/EMPTY if __name__ == "__main__": BLOCK REMOVED ---
 
 # Demo Example Usage:
 if __name__ == "__main__":
@@ -556,4 +561,3 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print(f"\n\nStopped. Total scans captured: {scan_count}")
             print(f"Files saved in 'output/' directory, sorted by month.")
-
