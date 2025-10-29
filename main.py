@@ -530,7 +530,7 @@ if __name__ == '__main__':
     try:
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
-        eel.start('index.html', size=(1280, 800))
+        eel.start('index.html', mode='chrome', cmdline_args=['--kiosk'])
     except (SystemExit, MemoryError, KeyboardInterrupt):
         print("UI closed, shutting down application.")
     finally:
