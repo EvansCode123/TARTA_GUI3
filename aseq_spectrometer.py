@@ -466,8 +466,9 @@ if __name__ == "__main__":
     
     logging.basicConfig(level=logging.INFO)
     
-    # Create output directory if it doesn't exist
-    os.makedirs('output', exist_ok=True)
+    # Create the base output directory if it doesn't exist
+    base_output_dir = 'output'
+    os.makedirs(base_output_dir, exist_ok=True)
     
     with LR1.discover() as spectro:
         print(f"Connected to: {spectro}")
@@ -494,8 +495,6 @@ if __name__ == "__main__":
                 spectro.clear_memory()
                 
                 # Wait for trigger and capture
-                # Note: With external trigger, device waits for trigger signal automatically
-                # We just need to poll status until capture is complete
                 status = spectro.get_status()
                 while status == Status.idle:
                     time.sleep(0.01)  # Poll every 10ms
@@ -510,15 +509,37 @@ if __name__ == "__main__":
                 frame = spectro.get_raw_frame()
                 scan_count += 1
                 
-                # Generate filename with timestamp
-                timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-                filename = f'output/scan_{scan_count:04d}_{timestamp}.csv'
+                # --- START OF MODIFICATIONS ---
+
+                # Get the current datetime object
+                now = datetime.datetime.now()
                 
-                # Save to CSV file without headers
+                # Create the month-year folder name (e.g., "1025" for Oct 2025)
+                month_year_folder = now.strftime('%m%y')
+                
+                # Create the full path for the new directory
+                output_dir = os.path.join(base_output_dir, month_year_folder)
+                
+                # Create this monthly directory if it doesn't exist
+                os.makedirs(output_dir, exist_ok=True)
+                
+                # Generate filename based on your new requested format
+                # YYYY-MM-DD T HH-MM-SS
+                filename_base = now.strftime('%Y-%m-%dT%H-%M-%S')
+                
+                # Create the final, full file path
+                # e.g., output/1025/2025-10-28T17-22-09.txt
+                filename = os.path.join(output_dir, f'{filename_base}.txt')
+                
+                # --- END OF MODIFICATIONS ---
+                
+                
+                # Save to .txt file (still using comma as delimiter for clarity)
                 if wavelengths is not None:
                     # Save with wavelength and intensity columns
                     data = np.column_stack((wavelengths, frame))
-                    np.savetxt(filename, data, delimiter=',', fmt='%.6f,%d')
+                    # We use .txt extension but keep comma delimiter
+                    np.savetxt(filename, data, delimiter=',', fmt='%.6f,%d') 
                 else:
                     # Save intensity only
                     np.savetxt(filename, frame, delimiter=',', fmt='%d')
@@ -527,4 +548,4 @@ if __name__ == "__main__":
                 
         except KeyboardInterrupt:
             print(f"\n\nStopped. Total scans captured: {scan_count}")
-            print(f"Files saved in 'output/' directory")
+            print(f"Files saved in 'output/' directory, sorted by month.")
