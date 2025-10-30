@@ -562,7 +562,7 @@ if __name__ == '__main__':
     # Attempt to sync RTC with internet time at startup
     #sync_rtc_with_ntp()
     
-try:
+    try:
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
 
