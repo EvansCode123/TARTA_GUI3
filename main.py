@@ -566,13 +566,17 @@ if __name__ == '__main__':
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
 
-        # --- THIS IS THE NEW ATTEMPT ---
+        # --- THIS IS THE CORRECT METHOD ---
         
         # 1. SET THE FULL PATH TO YOUR BROWSER EXECUTABLE
         #    (Run 'which chromium' or 'which google-chrome-stable' to find it)
         browser_path = '/usr/bin/chromium'  # <-- *** CHANGE THIS PATH ***
         
-        # 2. Define the command line flags
+        # 2. Tell Eel to use this specific path for the 'chromium' mode
+        #    This must be done BEFORE eel.start()
+        eel.browsers.set_path('chromium', browser_path)
+
+        # 3. Define the command line flags
         browser_flags = [
             '--kiosk',
             '--ozone-platform=wayland',
@@ -581,15 +585,13 @@ if __name__ == '__main__':
             '--disable-infobars'
         ]
 
-        # 3. Start Eel, passing the full path and flags
-        #    We set 'mode=None' and pass the path directly.
+        # 4. Start Eel. Now 'mode="chromium"' will use the exact path you set above.
         eel.start(
             'index.html', 
-            mode=None,  # <-- Tell Eel not to guess the mode
+            mode='chromium',  # <-- This now refers to your specific path
             host='localhost', # Specify host
             port=8000, # Specify port
-            cmdline_args=browser_flags,
-            browser_path=browser_path  # <-- Provide the explicit path
+            cmdline_args=browser_flags
         )
         
     except (SystemExit, MemoryError, KeyboardInterrupt):
