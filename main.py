@@ -563,18 +563,27 @@ if __name__ == '__main__':
     sync_rtc_with_ntp()
     
     try:
+        # Start the USB monitoring thread
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
 
-        # --- THIS IS THE NEW PART ---
-        # Start the fullscreen trigger thread
-        fs_thread = threading.Thread(target=trigger_fullscreen, daemon=True)
-        fs_thread.start()
-        # -----------------------------
+        # --- THIS IS THE FIX ---
+        # 1. We have REMOVED the "fs_thread" that used xdotool.
+        # 2. We are telling Eel to launch the browser with Wayland-compatible kiosk flags.
+        
+        eel_options = {
+            'mode': 'chromium',  # Or 'google-chrome-stable', 'chromium-browser'
+            'cmdline_args': [
+                '--kiosk',                    # This enables true kiosk mode
+                '--ozone-platform=wayland',   # <-- THIS IS THE KEY WAYLAND FIX
+                '--disable-pinch',            # Optional: disables pinch-to-zoom
+                '--noerrdialogs',             # Optional: suppresses error popups
+                '--disable-infobars'          # Optional: hides "Chrome is controlled by..."
+            ]
+        }
 
-        # Start Eel using the browser we found, but *without* the flags
-        # The fs_thread will handle making it fullscreen
-        eel.start('index.html', mode='chromium-browser') 
+        # Start Eel with our new options
+        eel.start('index.html', options=eel_options)
         
     except (SystemExit, MemoryError, KeyboardInterrupt):
         print("UI closed, shutting down application.")
