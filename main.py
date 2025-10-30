@@ -565,33 +565,23 @@ if __name__ == '__main__':
     try:
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
-
-        # --- THIS IS THE CORRECT METHOD ---
         
-        # 1. SET THE FULL PATH TO YOUR BROWSER EXECUTABLE
-        #    (Run 'which chromium' or 'which google-chrome-stable' to find it)
-        browser_path = '/usr/bin/chromium'  # <-- *** CHANGE THIS PATH ***
-        
-        # 2. Tell Eel to use this specific path for the 'chromium' mode
-        #    This must be done BEFORE eel.start()
-        eel.browsers.set_path('chromium', browser_path)
-
-        # 3. Define the command line flags
-        browser_flags = [
-            '--kiosk',
-            '--ozone-platform=wayland',
-            '--disable-pinch',
-            '--noerrdialogs',
-            '--disable-infobars'
-        ]
-
-        # 4. Start Eel. Now 'mode="chromium"' will use the exact path you set above.
+        # Use 'custom' mode and specify the exact command
         eel.start(
             'index.html', 
-            mode='chromium',  # <-- This now refers to your specific path
-            host='localhost', # Specify host
-            port=8000, # Specify port
-            cmdline_args=browser_flags
+            mode='custom',
+            host='localhost',
+            port=8000,
+            cmdline_args=[
+                '/usr/bin/chromium',
+                '--kiosk',
+                '--ozone-platform=wayland',
+                '--disable-pinch',
+                '--noerrdialogs',
+                '--disable-infobars',
+                '--disable-session-crashed-bubble',
+                '--disable-component-update'
+            ]
         )
         
     except (SystemExit, MemoryError, KeyboardInterrupt):
