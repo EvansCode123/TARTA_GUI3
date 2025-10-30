@@ -562,30 +562,34 @@ if __name__ == '__main__':
     # Attempt to sync RTC with internet time at startup
     sync_rtc_with_ntp()
     
-    try:
-        # Start the USB monitoring thread
+try:
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
 
-        # --- THIS IS THE FIX ---
-        # 1. We have REMOVED the "fs_thread" (for xdotool).
-        # 2. We are passing the arguments directly to eel.start()
-        #    instead of using the "options" dictionary.
+        # --- THIS IS THE NEW ATTEMPT ---
         
-        # Define the command line flags
+        # 1. SET THE FULL PATH TO YOUR BROWSER EXECUTABLE
+        #    (Run 'which chromium' or 'which google-chrome-stable' to find it)
+        browser_path = '/usr/bin/chromium'  # <-- *** CHANGE THIS PATH ***
+        
+        # 2. Define the command line flags
         browser_flags = [
-            '--kiosk',                    # This enables true kiosk mode
-            '--ozone-platform=wayland',   # <-- The critical Wayland fix
-            '--disable-pinch',            
-            '--noerrdialogs',             
-            '--disable-infobars'          
+            '--kiosk',
+            '--ozone-platform=wayland',
+            '--disable-pinch',
+            '--noerrdialogs',
+            '--disable-infobars'
         ]
 
-        # Start Eel, passing arguments directly
+        # 3. Start Eel, passing the full path and flags
+        #    We set 'mode=None' and pass the path directly.
         eel.start(
             'index.html', 
-            mode='chromium',  # <-- IMPORTANT: Change this if your command is different
-            cmdline_args=browser_flags
+            mode=None,  # <-- Tell Eel not to guess the mode
+            host='localhost', # Specify host
+            port=8000, # Specify port
+            cmdline_args=browser_flags,
+            browser_path=browser_path  # <-- Provide the explicit path
         )
         
     except (SystemExit, MemoryError, KeyboardInterrupt):
