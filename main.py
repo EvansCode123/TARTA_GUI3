@@ -566,7 +566,7 @@ if __name__ == '__main__':
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
         
-        # Use 'custom' mode and specify the exact command
+        # Use 'custom' mode and specify the exact command INCLUDING the URL
         eel.start(
             'index.html', 
             mode='custom',
@@ -580,7 +580,8 @@ if __name__ == '__main__':
                 '--noerrdialogs',
                 '--disable-infobars',
                 '--disable-session-crashed-bubble',
-                '--disable-component-update'
+                '--disable-component-update',
+                'http://localhost:8000/index.html'  # <-- Add the full URL
             ]
         )
         
