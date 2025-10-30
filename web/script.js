@@ -1,6 +1,6 @@
 let padTarget = null;
 let currentInput = null;
-let viewMode = 'single';
+// viewMode variable removed
 let scanTotals = {cycles:0, sparks:0}, cleanTotals = {cycles:0, sparks:0}, pmTotals = {sparks:0};
 let pmTimerInterval, pmTimeSinceSpark;
 let detectedUsbPath = null;
@@ -42,6 +42,17 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   document.getElementById('header-title').textContent = screenTitles[id] || '';
+
+  // ADDED: Clear plot when navigating to view-screen
+  if (id === 'view-screen') {
+    // Clear the plot to avoid showing old data and add placeholder text
+    Plotly.newPlot('plot', [], {
+      title: 'Select "Choose File" to load a spectrum',
+      titlefont: { size: 22 },
+      margin: {t: 50, l: 60, r: 20, b: 60}, 
+      font: {size: 20}
+    });
+  }
 }
 
 function goBack() {
@@ -258,16 +269,20 @@ function abortOp() {
   eel.abort_all()();
 }
 
-function refreshList() {
+// RENAMED from refreshList and logic UPDATED to populate the modal
+function populateFilePicker() {
   eel.list_scans()((files) => {
-    const sel = id('scan-list');
+    const sel = id('file-picker-list');
     sel.innerHTML = '';
-    files.forEach(f => {
-      const filename = f.split(/[/\\]/).pop();
-      sel.add(new Option(filename, f));
-    });
-    if (files.length && viewMode === 'single') {
-      loadScan(files[0]);
+    if (files.length === 0) {
+        sel.add(new Option('No files found', ''));
+        sel.disabled = true;
+    } else {
+        sel.disabled = false;
+        files.forEach(f => {
+          // 'f' is now a relative path like '1025/file.csv'
+          sel.add(new Option(f, f));
+        });
     }
   });
 }
@@ -276,7 +291,13 @@ function loadScan(path) {
   eel.get_scan_data(path)((data) => {
     if (!data || !data.x || !data.y || data.x.length === 0) {
       console.error("Invalid or empty data:", data);
-      id('scan-status').textContent = "Failed to load data";
+      // Update plot with an error message
+      Plotly.newPlot('plot', [], {
+        title: `Error: Could not load file '${path}'`,
+        titlefont: { size: 22, color: 'red' },
+        margin: {t: 50, l: 60, r: 20, b: 60}, 
+        font: {size: 20}
+      });
       return;
     }
 
@@ -292,6 +313,26 @@ function loadScan(path) {
     Plotly.newPlot('plot', [trace, peaks], {  margin: {t: 30, l: 60, r: 20, b: 60},  font: {size: 20},  xaxis: {title: {text: 'Wavelength', font: {size: 22}}, tickfont: {size: 18}},  yaxis: {title: {text: 'Intensity', font: {size: 22}}, tickfont: {size: 18}},  legend: {font: {size: 18}}});
   });
 }
+
+// --- NEW File Picker Functions ---
+function openFilePicker() {
+  populateFilePicker(); // Refresh list every time it's opened
+  id('file-picker-modal').classList.remove('hidden');
+}
+
+function closeFilePicker() {
+  id('file-picker-modal').classList.add('hidden');
+}
+
+function loadFileFromPicker() {
+  const sel = id('file-picker-list');
+  const file = sel.value;
+  if (file) { // Only load if a valid file is selected
+    loadScan(file);
+  }
+  closeFilePicker();
+}
+// --- END NEW File Picker Functions ---
 
 function setupNumPad() {
   const keys = ['1','2','3','4','5','6','7','8','9','0','DEL','OK'];
@@ -371,30 +412,14 @@ function setScreenLock(locked, screenId = null) {
     const screens = screenId ? [document.getElementById(screenId)] : document.querySelectorAll('.screen');
     screens.forEach(screen => {
         screen.querySelectorAll('input, select, button').forEach(el => {
-            const isAbortOrBack = el.textContent.includes('Abort') || el.textContent.includes('Back') || el.textContent.includes('View');
-            el.disabled = locked && !isAbortOrBack;
+            // Updated logic: also allow "Choose File"
+            const isControlBtn = el.textContent.includes('Abort') || el.textContent.includes('Back') || el.textContent.includes('Choose File');
+            el.disabled = locked && !isControlBtn;
         });
     });
 }
 
-
-function loadAverage() {
-  eel.get_scan_data_avg()((data) => {
-    if (!data.x.length) {
-      id('scan-status').textContent = "No scans to average.";
-      return;
-    }
-    const trace = {x: data.x, y: data.y, mode: 'lines', name: 'Average'};
-    const peaks = {
-      x: data.peaks.map(i => data.x[i]),
-      y: data.peaks.map(i => data.y[i]),
-      mode: 'markers',
-      name: 'Peaks',
-      marker: {color: 'red', size: 6}
-    };
-    Plotly.newPlot('plot', [trace, peaks], {  margin: {t: 30, l: 60, r: 20, b: 60},  font: {size: 20},  xaxis: {title: {text: 'Wavelength', font: {size: 22}}, tickfont: {size: 18}},  yaxis: {title: {text: 'Intensity', font: {size: 22}}, tickfont: {size: 18}},  legend: {font: {size: 18}}});
-  });
-}
+// loadAverage() function REMOVED
 
 // --- USB Functions ---
 
