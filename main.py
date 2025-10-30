@@ -568,22 +568,25 @@ if __name__ == '__main__':
         usb_thread.start()
 
         # --- THIS IS THE FIX ---
-        # 1. We have REMOVED the "fs_thread" that used xdotool.
-        # 2. We are telling Eel to launch the browser with Wayland-compatible kiosk flags.
+        # 1. We have REMOVED the "fs_thread" (for xdotool).
+        # 2. We are passing the arguments directly to eel.start()
+        #    instead of using the "options" dictionary.
         
-        eel_options = {
-            'mode': 'chromium',  # Or 'google-chrome-stable', 'chromium-browser'
-            'cmdline_args': [
-                '--kiosk',                    # This enables true kiosk mode
-                '--ozone-platform=wayland',   # <-- THIS IS THE KEY WAYLAND FIX
-                '--disable-pinch',            # Optional: disables pinch-to-zoom
-                '--noerrdialogs',             # Optional: suppresses error popups
-                '--disable-infobars'          # Optional: hides "Chrome is controlled by..."
-            ]
-        }
+        # Define the command line flags
+        browser_flags = [
+            '--kiosk',                    # This enables true kiosk mode
+            '--ozone-platform=wayland',   # <-- The critical Wayland fix
+            '--disable-pinch',            
+            '--noerrdialogs',             
+            '--disable-infobars'          
+        ]
 
-        # Start Eel with our new options
-        eel.start('index.html', options=eel_options)
+        # Start Eel, passing arguments directly
+        eel.start(
+            'index.html', 
+            mode='chromium',  # <-- IMPORTANT: Change this if your command is different
+            cmdline_args=browser_flags
+        )
         
     except (SystemExit, MemoryError, KeyboardInterrupt):
         print("UI closed, shutting down application.")
