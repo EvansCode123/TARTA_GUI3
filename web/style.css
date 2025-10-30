@@ -11,6 +11,7 @@ body {
   color: #222;
   -webkit-user-select: none; /* Disable text selection for a more native feel */
   user-select: none;
+  overflow: hidden; /* Prevent scrolling on the whole page */
 }
 
 /* Header */
@@ -39,6 +40,7 @@ header h1 { font-size: 1.5rem;
   padding: 80px 26px 26px;
   min-height: 100vh;
   width: 100%;
+  overflow-y: auto; /* Allow internal scrolling if content overflows */
 }
 .screen.active {
   display: flex;
@@ -95,13 +97,7 @@ header h1 { font-size: 1.5rem;
   background-color: #a00;
 }
 
-.btn.small {
-  padding: 0.5rem 1rem;
-  font-size: 0.9rem;
-  max-width: none;
-  width: auto;
-  border-radius: 8px;
-}
+/* Small button style was removed as it's no longer used in view-screen */
 
 /* Ripple Effect */
 .ripple {
@@ -142,9 +138,7 @@ input:focus, select:focus {
   border-color: #007bff;
   outline: none;
 }
-#scan-list {
-  margin-bottom: 1rem;
-}
+/* Removed #scan-list styles */
 
 /* Plot - Responsive */
 #plot {
@@ -505,10 +499,44 @@ label, .status, input, select, .subtitle, .version { font-weight: 600; }
 #pm-current, #pm-max { font-size: 1.5rem; font-weight: 700; }
 #pm-bar { height: 18px; border-radius: 12px; }
 
-/* View Spectra: enlarge controls and plot vicinity text */
-#view-screen .btn.small { font-size: 1.35rem; min-height: 64px; padding: 0.9rem 1.1rem; }
-#scan-list { font-size: 1.5rem; padding: 1.1rem; }
-#scan-list option { font-size: 1.5rem; }
+/* NEW: View Spectra screen layout */
+#view-screen {
+  justify-content: space-between; /* Pushes plot up, actions down */
+  padding-bottom: 26px; /* Ensure padding is consistent */
+  height: calc(100vh - 80px); /* Fill height minus header */
+  box-sizing: border-box;
+}
+
+#view-screen #plot {
+  flex-grow: 1; /* This is the key change */
+  width: min(95vw, 900px); /* Keep existing constraint */
+  height: auto; /* Let flex-grow handle height */
+  min-height: 50vh; /* Ensure it has a good minimum height */
+  margin-bottom: 1rem;
+}
+
+#view-screen .actions {
+  flex-grow: 0; /* Don't grow the actions bar */
+  flex-shrink: 0; /* Don't shrink it either */
+  width: 100%; /* Make actions bar span width */
+  max-width: 720px; /* Match other button bars */
+}
+
+/* NEW: Style for the file picker modal list */
+#file-picker-list {
+  padding: 0.5rem;
+  font-size: 1.35rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  background-color: #fff;
+}
+#file-picker-list option {
+  /* Style for options inside the select box */
+  padding: 0.85rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+}
 
 /* Slight bump for all selects/inputs globally to maintain consistency */
 input, select { font-size: 1.45rem; }
