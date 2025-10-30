@@ -527,36 +527,49 @@ def abort_all():
 @eel.expose
 def is_rpi_ready(): return RPI_MODE and rpi_controller.is_hw_ready
 
-# The data handling functions below are unchanged.
 @eel.expose
 def list_scans():
+    """
+    Recursively finds all .csv files in the output directory, sorts them by
+    modification time (newest first), and returns them as paths relative
+    to the 'output' directory (e.g., '1025/scan_01.csv').
+    """
     output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output')
     if not os.path.exists(output_path): os.makedirs(output_path)
-    files = sorted(glob.glob(os.path.join(output_path, '*.csv')), key=os.path.getmtime, reverse=True)
-    return [os.path.basename(f) for f in files]
+    
+    # Recursively find all .csv files using glob
+    files = sorted(
+        glob.glob(os.path.join(output_path, '**', '*.txt'), recursive=True),
+        key=os.path.getmtime,
+        reverse=True
+    )
+    
+    # Return paths relative to the 'output' directory
+    return [os.path.relpath(f, output_path) for f in files]
 
 @eel.expose
 def get_scan_data(filename):
+    """
+    Gets scan data for a given file.
+    'filename' is a relative path like '1025/scan_01.csv'.
+    """
+    # Reconstruct the full path
     full_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output', filename)
-    if not os.path.exists(full_path): return {'x': [], 'y': [], 'peaks': []}
-    df = pd.read_csv(full_path)
-    x, y = df.iloc[:,0].tolist(), df.iloc[:,1].tolist()
-    peaks, _ = find_peaks(y, height=6500, distance=50)
-    return {'x': x, 'y': y, 'peaks': peaks.tolist()}
+    
+    if not os.path.exists(full_path): 
+        print(f"Error: File not found at {full_path}")
+        return {'x': [], 'y': [], 'peaks': []}
+        
+    try:
+        df = pd.read_csv(full_path)
+        x, y = df.iloc[:,0].tolist(), df.iloc[:,1].tolist()
+        peaks, _ = find_peaks(y, height=6500, distance=50)
+        return {'x': x, 'y': y, 'peaks': peaks.tolist()}
+    except Exception as e:
+        print(f"Error reading file {full_path}: {e}")
+        return {'x': [], 'y': [], 'peaks': []}
 
-@eel.expose
-def get_scan_data_avg():
-    output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'output')
-    files = sorted(glob.glob(os.path.join(output_path, '*.csv')), key=os.path.getmtime, reverse=True)[:10]
-    if not files: return {'x': [], 'y': [], 'peaks': []}
-    dfs = [pd.read_csv(f) for f in files]
-    min_len = min(len(df) for df in dfs)
-    dfs_trimmed = [df.iloc[:min_len, :] for df in dfs]
-    combined_df = pd.concat(dfs_trimmed)
-    avg_df = combined_df.groupby(combined_df.columns[0])[combined_df.columns[1]].mean().reset_index()
-    x, y = avg_df.iloc[:,0].tolist(), avg_df.iloc[:,1].tolist()
-    peaks, _ = find_peaks(y, height=6500, distance=50)
-    return {'x': x, 'y': y, 'peaks': peaks.tolist()}
+# Removed the get_scan_data_avg function as requested
 
 if __name__ == '__main__':
     # Attempt to sync RTC with internet time at startup
