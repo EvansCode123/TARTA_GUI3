@@ -86,65 +86,33 @@ class LR1:
             LOGGER.debug(f"Cleared {cleared_count} stale packets from USB buffer")
 
     def _open(self) -> None:
-        max_retries = 3
-        last_error = None
-        
-        for attempt in range(max_retries):
+        try:
+            # Detach kernel driver if necessary (Linux only)
             try:
-                LOGGER.debug(f"Connection attempt {attempt + 1} of {max_retries}")
-                
-                # Detach kernel driver if necessary (Linux only)
-                try:
-                    if self.device.is_kernel_driver_active(0):
-                        self.device.detach_kernel_driver(0)
-                        LOGGER.debug("Detached kernel driver")
-                except (NotImplementedError, AttributeError):
-                    # Not supported on Windows
-                    pass
-                
-                # Set configuration
-                self.device.set_configuration()
-                LOGGER.debug("Device configuration set")
-                
-                # Increased wait time for device initialization
-                time.sleep(1.0)
-                
-                # Clear any stale data in USB buffers
-                self._clear_usb_buffers()
-                
-                # Try reset, but don't fail if it times out
-                try:
-                    self.reset()
-                    time.sleep(0.3)  # Extra wait after reset
-                    # Clear buffers again after reset
-                    self._clear_usb_buffers()
-                except (usb.core.USBError, OSError) as e:
-                    LOGGER.warning(f"Reset command failed (this may be normal): {e}")
-                
-                # Try to get parameters - this is our connectivity test
-                LOGGER.debug("Attempting to get device parameters...")
-                self.get_parameters()
-                self.get_frame_format()
-                self.get_status()
-                self.get_calibration()
-                
-                LOGGER.debug(f"Connected to spectrometer successfully")
-                self.connected = True
-                return  # Success!
-                
+                if self.device.is_kernel_driver_active(0):
+                    self.device.detach_kernel_driver(0)
+            except (NotImplementedError, AttributeError):
+                pass
+        
+            # Set configuration
+            self.device.set_configuration()
+            time.sleep(0.2)
+        
+            # Try reset, but don't fail if it times out
+            try:
+                self.reset()
             except (usb.core.USBError, OSError) as e:
-                last_error = e
-                if attempt < max_retries - 1:
-                    LOGGER.warning(f"Connection attempt {attempt + 1} failed: {e}. Retrying in 1 second...")
-                    time.sleep(1)
-                    # Try to reset the USB device
-                    try:
-                        self.device.reset()
-                        time.sleep(1)
-                    except:
-                        pass
-                else:
-                    raise OSError(f"Unable to open spectrometer after {max_retries} attempts. Last error: {last_error}")
+                LOGGER.warning(f"Reset command failed (this may be normal): {e}")
+        
+        except usb.core.USBError as e:
+            raise OSError(f"Unable to open spectrometer: {e}")
+
+        LOGGER.debug(f"Connected to spectrometer")
+        self.connected = True
+        self.get_parameters()
+        self.get_frame_format()
+        self.get_status()
+        self.get_calibration()
 
     def _close(self) -> None:
         try:
@@ -603,3 +571,4 @@ if __name__ == "__main__":
         except KeyboardInterrupt:
             print(f"\n\nStopped. Total scans captured: {scan_count}")
             print(f"Files saved in 'output/' directory, sorted by month.")
+
