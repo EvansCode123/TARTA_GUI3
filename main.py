@@ -246,10 +246,6 @@ def copy_data_to_usb(mount_point):
     except Exception as e:
         print(f"Error copying to USB: {e}")
         eel.usb_copy_status('error', f'Failed to copy: {str(e)}')()
-@eel.expose
-def copy_data_to_usb(mount_point):
-    # ... (your existing function)
-    pass
 
 @eel.expose
 def trigger_gdrive_upload():
@@ -290,63 +286,107 @@ def trigger_gdrive_upload():
 # --- START OF NEW GOOGLE DRIVE FUNCTIONS ---
 
 def upload_output_to_gdrive():
-    """Zips the output folder and uploads it to Google Drive."""
+    """Zips the output folder and uploads it to Google Drive (User OAuth)."""
     print("Starting daily Google Drive upload...")
     try:
-        # 1. Get GDrive Folder ID from config
+        # 1) Folder ID from config (this can be a folder in *your* My Drive)
         parent_folder_id = config.get('google_drive_folder_id')
         if not parent_folder_id:
             print("Error: 'google_drive_folder_id' not in config.json. Skipping upload.")
             return
 
-        # 2. Find local output path
+        # 2) Locate output and create zip
         base_path = os.path.dirname(os.path.abspath(__file__))
         output_path = os.path.join(base_path, 'output')
         if not os.path.exists(output_path) or not os.listdir(output_path):
             print("Output folder not found or is empty. Nothing to upload.")
             return
-        
-        # 3. Create a timestamped zip file
+
         timestamp = get_rtc_datetime().strftime('%Y%m%d_%H%M%S')
         zip_name = f'spectrometer_data_{timestamp}'
-        # Place zip file in the base path, not in the output folder
         zip_path_base = os.path.join(base_path, zip_name)
-        
+
         print(f"Creating zip file: {zip_path_base}.zip")
         shutil.make_archive(zip_path_base, 'zip', output_path)
-        
         zip_file_path = zip_path_base + '.zip'
-        
-        # 4. Authenticate with Google Drive
-        print("Authenticating with Google Drive...")
-        gauth = GoogleAuth()
-        # Use Service Account
-        gauth.ServiceAuth("service_account.json")
-        drive = GoogleDrive(gauth)
 
-        # 5. Upload the zip file
-        print(f"Uploading {zip_file_path} to Google Drive...")
+        # 3) Authenticate with Google Drive (USER OAUTH)  ⬇️ REPLACEMENT STARTS HERE
+        print("Authenticating with Google Drive (user OAuth)...")
+        from pydrive2.auth import GoogleAuth
+        from pydrive2.drive import GoogleDrive
+
+        client_secrets_path = os.path.join(base_path, "client_secrets.json")  # OAuth client (NOT service account)
+        if not os.path.exists(client_secrets_path):
+            raise FileNotFoundError(
+                f"client_secrets.json not found at {client_secrets_path}. "
+                "Create an OAuth 2.0 Client ID (Desktop app) in Google Cloud, "
+                "download the JSON, and save it here."
+            )
+
+        credentials_path = os.path.join(base_path, "credentials.json")
+
+        gauth = GoogleAuth(settings={
+            "client_config_backend": "file",
+            "client_config_file": client_secrets_path,
+            "oauth_scope": ["https://www.googleapis.com/auth/drive.file"],
+            "save_credentials": True,
+            "save_credentials_backend": "file",
+            "save_credentials_file": credentials_path
+        })
+
+        # Reuse saved creds if they exist; otherwise do one-time browser sign-in
+        gauth.LoadCredentialsFile(credentials_path)
+        if gauth.credentials is None:
+            gauth.LocalWebserverAuth()   # opens a browser once
+        elif gauth.access_token_expired:
+            gauth.Refresh()
+        else:
+            gauth.Authorize()
+        gauth.SaveCredentialsFile(credentials_path)
+
+        drive = GoogleDrive(gauth)
+        # ----------------------------- REPLACEMENT ENDS HERE -----------------------------
+       
+        # 4) Upload the zip (and release file handle so Windows can delete it)
+        print(f"Uploading {zip_file_path} to Google Drive (resumable)...")
         f = drive.CreateFile({
             'title': os.path.basename(zip_file_path),
             'parents': [{'id': parent_folder_id}]
         })
-        f.SetContentFile(zip_file_path)
-        f.Upload()
-        print(f"Successfully uploaded {zip_file_path}.")
+        
+        try:
+            # This opens the file handle
+            f.SetContentFile(zip_file_path)
+            
+            # THIS IS THE FIX: 'uploadType': 'resumable'
+            f.Upload(param={'uploadType': 'resumable'})
+            
+            print(f"Successfully uploaded {zip_file_path}.")
 
-        # 6. Clean up local zip file
+        finally:
+            # This 'finally' block GUARANTEES the file handle is closed,
+            # even if the f.Upload() line fails. This prevents WinError 32.
+            if hasattr(f, 'content') and f.content:
+                try:
+                    f.content.close()
+                    print("File handle closed.")
+                except Exception as e:
+                    print(f"Warning: Error closing file handle: {e}")
+
+        # 5) Clean up local zip file
+        # This will now work because the 'finally' block ran and closed the file.
         os.remove(zip_file_path)
         print(f"Cleaned up local file: {zip_file_path}")
 
     except Exception as e:
         print(f"Google Drive upload failed: {e}")
-        # Clean up partial zip file if it exists
         if 'zip_file_path' in locals() and os.path.exists(zip_file_path):
             try:
                 os.remove(zip_file_path)
                 print(f"Cleaned up partial zip file: {zip_file_path}")
             except Exception as e_clean:
                 print(f"Error cleaning up zip file: {e_clean}")
+
 
 def gdrive_upload_scheduler():
     """
@@ -394,9 +434,6 @@ def gdrive_upload_scheduler():
 
 # --- END OF NEW GOOGLE DRIVE FUNCTIONS ---
 
-# --- RPi Controller ---
-class RPIController:
-    # ... (rest of your class)
 # --- RPi Controller ---
 class RPIController:
     def __init__(self):
@@ -736,23 +773,35 @@ if __name__ == '__main__':
         gdrive_thread.start()
         
         # Use 'custom' mode and specify the exact command INCLUDING the URL
-        eel.start(
-            'index.html', 
-            mode='custom',
-            host='localhost',
-            port=8000,
-            cmdline_args=[
-                '/usr/bin/chromium',
-                '--kiosk',
-                '--ozone-platform=wayland',
-                '--disable-pinch',
-                '--noerrdialogs',
-                '--disable-infobars',
-                '--disable-session-crashed-bubble',
-                '--disable-component-update',
-                'http://localhost:8000/index.html'  # <-- Add the full URL
-            ]
-        )
+# --- REPLACE IT WITH THIS NEW CODE ---
+        if RPI_MODE:
+            print("Starting in RPi Kiosk Mode.")
+            # Use 'custom' mode and specify the exact command INCLUDING the URL
+            eel.start(
+                'index.html',  
+                mode='custom',
+                host='localhost',
+                port=8000,
+                cmdline_args=[
+                    '/usr/bin/chromium',
+                    '--kiosk',
+                    '--ozone-platform=wayland',
+                    '--disable-pinch',
+                    '--noerrdialogs',
+                    '--disable-infobars',
+                    '--disable-session-crashed-bubble',
+                    '--disable-component-update',
+                    'http://localhost:8000/index.html'
+                ]
+            )
+        else:
+            print("Starting in Windows/Development Mode.")
+            # On Windows, just let Eel pick the default browser (Chrome, Edge, etc.)
+            eel.start(
+                'index.html',  
+                host='localhost',
+                port=8000
+            )
         
     except (SystemExit, MemoryError, KeyboardInterrupt):
         print("UI closed, shutting down application.")
