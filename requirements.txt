@@ -8,3 +8,4 @@ ntplib
 lgpio
 adafruit-blinka
 adafruit-circuitpython-mcp4725
+PyDrive2
