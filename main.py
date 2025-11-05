@@ -14,6 +14,8 @@ import psutil
 import sys
 import socket
 import subprocess
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
 
 # --- RPi specific imports ---
 try:
@@ -243,7 +245,121 @@ def copy_data_to_usb(mount_point):
     except Exception as e:
         print(f"Error copying to USB: {e}")
         eel.usb_copy_status('error', f'Failed to copy: {str(e)}')()
+@eel.expose
+def copy_data_to_usb(mount_point):
+    # ... (your existing function)
+    pass
 
+# --- START OF NEW GOOGLE DRIVE FUNCTIONS ---
+
+def upload_output_to_gdrive():
+    """Zips the output folder and uploads it to Google Drive."""
+    print("Starting daily Google Drive upload...")
+    try:
+        # 1. Get GDrive Folder ID from config
+        parent_folder_id = config.get('google_drive_folder_id')
+        if not parent_folder_id:
+            print("Error: 'google_drive_folder_id' not in config.json. Skipping upload.")
+            return
+
+        # 2. Find local output path
+        base_path = os.path.dirname(os.path.abspath(__file__))
+        output_path = os.path.join(base_path, 'output')
+        if not os.path.exists(output_path) or not os.listdir(output_path):
+            print("Output folder not found or is empty. Nothing to upload.")
+            return
+        
+        # 3. Create a timestamped zip file
+        timestamp = get_rtc_datetime().strftime('%Y%m%d_%H%M%S')
+        zip_name = f'spectrometer_data_{timestamp}'
+        # Place zip file in the base path, not in the output folder
+        zip_path_base = os.path.join(base_path, zip_name)
+        
+        print(f"Creating zip file: {zip_path_base}.zip")
+        shutil.make_archive(zip_path_base, 'zip', output_path)
+        
+        zip_file_path = zip_path_base + '.zip'
+        
+        # 4. Authenticate with Google Drive
+        print("Authenticating with Google Drive...")
+        gauth = GoogleAuth()
+        # Use Service Account
+        gauth.ServiceAuth("service_account.json")
+        drive = GoogleDrive(gauth)
+
+        # 5. Upload the zip file
+        print(f"Uploading {zip_file_path} to Google Drive...")
+        f = drive.CreateFile({
+            'title': os.path.basename(zip_file_path),
+            'parents': [{'id': parent_folder_id}]
+        })
+        f.SetContentFile(zip_file_path)
+        f.Upload()
+        print(f"Successfully uploaded {zip_file_path}.")
+
+        # 6. Clean up local zip file
+        os.remove(zip_file_path)
+        print(f"Cleaned up local file: {zip_file_path}")
+
+    except Exception as e:
+        print(f"Google Drive upload failed: {e}")
+        # Clean up partial zip file if it exists
+        if 'zip_file_path' in locals() and os.path.exists(zip_file_path):
+            try:
+                os.remove(zip_file_path)
+                print(f"Cleaned up partial zip file: {zip_file_path}")
+            except Exception as e_clean:
+                print(f"Error cleaning up zip file: {e_clean}")
+
+def gdrive_upload_scheduler():
+    """
+    Runs in a background thread, triggering an upload at a specific time each day.
+    """
+    # Set this to the time you want the upload to happen (24-hour format)
+    UPLOAD_HOUR = 3  # 3:00 AM
+    UPLOAD_MINUTE = 0
+    print(f"Google Drive scheduler started. Will upload daily at {UPLOAD_HOUR:02d}:{UPLOAD_MINUTE:02d}.")
+
+    while True:
+        try:
+            # Get current time from the reliable RTC function
+            now = get_rtc_datetime()
+            
+            # Calculate the next upload time
+            next_upload = now.replace(hour=UPLOAD_HOUR, minute=UPLOAD_MINUTE, second=0, microsecond=0)
+            
+            if now >= next_upload:
+                # If it's already past 3:00 AM, schedule for 3:00 AM tomorrow
+                next_upload += datetime.timedelta(days=1)
+                
+            # Calculate sleep duration in seconds
+            sleep_duration = (next_upload - now).total_seconds()
+            
+            print(f"Next GDrive upload scheduled for: {next_upload}. Sleeping for {sleep_duration:.0f} seconds.")
+            
+            # Sleep until it's time
+            # We use a loop to sleep so it can be interrupted if the app closes
+            # (Note: This is a daemon thread, so it will be killed on app exit anyway,
+            # but sleeping in chunks is generally safer if we wanted to add an exit flag.)
+            time.sleep(sleep_duration)
+            
+            # --- It's time to upload! ---
+            upload_output_to_gdrive()
+            
+            # Sleep for 60 seconds to ensure we don't re-run in the same minute
+            time.sleep(60) 
+
+        except Exception as e:
+            print(f"Error in GDrive scheduler thread: {e}")
+            # Don't crash the thread, just wait a while and retry
+            print("Scheduler error. Retrying in 1 hour.")
+            time.sleep(3600) # Sleep for an hour
+
+# --- END OF NEW GOOGLE DRIVE FUNCTIONS ---
+
+# --- RPi Controller ---
+class RPIController:
+    # ... (rest of your class)
 # --- RPi Controller ---
 class RPIController:
     def __init__(self):
@@ -578,6 +694,9 @@ if __name__ == '__main__':
     try:
         usb_thread = threading.Thread(target=monitor_usb_drives, daemon=True)
         usb_thread.start()
+
+        gdrive_thread = threading.Thread(target=gdrive_upload_scheduler, daemon=True)
+        gdrive_thread.start()
         
         # Use 'custom' mode and specify the exact command INCLUDING the URL
         eel.start(
