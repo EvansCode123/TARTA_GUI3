@@ -32,6 +32,24 @@ window.onload = () => {
     communityConfig = cfg;
     setupCommunityScreens();
   });
+  const uploadBtn = document.getElementById('gdrive-upload-btn');
+  if (uploadBtn) {
+    uploadBtn.onclick = async () => {
+        console.log("Triggering GDrive upload...");
+        uploadBtn.disabled = true; // Disable button to prevent re-clicks
+        
+        // Call the Python function and get the status message
+        let status = await eel.trigger_gdrive_upload()(); 
+        
+        // Use your app's built-in toast notification
+        showToast(status, 3000); 
+        
+        // Re-enable the button after 3 seconds
+        setTimeout(() => {
+            uploadBtn.disabled = false;
+        }, 3000);
+    };
+  }
 };
 
 function showScreen(id) {
