@@ -6,6 +6,7 @@
     "threshold": 100,
     "arduino_baud_rate": 9600,
     "arduino_timeout": 3,
+    "google_drive_folder_id": "1T20Lr4KyayUf7op5FCzlfHRH8JXwo1yt",
     "connection_retry_delay": 2,
     "max_connection_retries": 5
 }
