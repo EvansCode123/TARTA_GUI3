@@ -16,6 +16,7 @@ import socket
 import subprocess
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
+gdrive_upload_lock = threading.Lock()
 
 # --- RPi specific imports ---
 try:
@@ -250,6 +251,42 @@ def copy_data_to_usb(mount_point):
     # ... (your existing function)
     pass
 
+@eel.expose
+def trigger_gdrive_upload():
+    """
+    Manually triggers the Google Drive upload in a new background thread.
+    Returns a status message to the UI.
+    """
+    print("Manual Google Drive upload triggered by user...")
+    
+    # Try to acquire the lock without blocking.
+    # If we can't get it, an upload is already running.
+    if gdrive_upload_lock.acquire(blocking=False):
+        print("Got lock, starting upload thread.")
+        
+        # We need a small wrapper function to run in the thread
+        # so we can release the lock when it's done.
+        def upload_task_with_lock_release():
+            try:
+                # This is the main upload function you already have
+                upload_output_to_gdrive()
+            except Exception as e:
+                print(f"Error in manual upload thread: {e}")
+            finally:
+                # IMPORTANT: Release the lock when done
+                gdrive_upload_lock.release()
+                print("Upload finished, lock released.")
+
+        # Start the upload in a new daemon thread
+        upload_thread = threading.Thread(target=upload_task_with_lock_release, daemon=True)
+        upload_thread.start()
+        
+        return "Upload started. This may take a few minutes."
+    else:
+        # We couldn't get the lock
+        print("Upload already in progress. Ignoring new request.")
+        return "Upload is already in progress. Please wait."
+        
 # --- START OF NEW GOOGLE DRIVE FUNCTIONS ---
 
 def upload_output_to_gdrive():
