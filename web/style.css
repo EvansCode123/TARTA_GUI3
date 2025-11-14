@@ -499,43 +499,133 @@ label, .status, input, select, .subtitle, .version { font-weight: 600; }
 #pm-current, #pm-max { font-size: 1.5rem; font-weight: 700; }
 #pm-bar { height: 18px; border-radius: 12px; }
 
-/* NEW: View Spectra screen layout */
+/* ===========================================
+   NEW: View Spectra Screen (Replaced)
+   - Two-pane layout: File list and Plot
+   =========================================== */
+
 #view-screen {
-  justify-content: space-between; /* Pushes plot up, actions down */
-  padding-bottom: 26px; /* Ensure padding is consistent */
+  justify-content: flex-start;
+  padding-bottom: 26px;
   height: calc(100vh - 80px); /* Fill height minus header */
   box-sizing: border-box;
+  width: 100%;
+}
+
+#view-container {
+  display: flex;
+  flex-direction: row; /* Default to side-by-side */
+  width: 100%;
+  max-width: 1200px; /* Give it a reasonable max width */
+  height: calc(100% - 88px); /* Fill the screen area, leaving room for 'Back' button */
+  gap: clamp(16px, 2.4vmin, 24px);
+  overflow: hidden; /* Prevent container from causing scroll */
+}
+
+#file-list-pane {
+  display: flex;
+  flex-direction: column;
+  flex-basis: 340px; /* Fixed width for the list */
+  flex-shrink: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  overflow: hidden; /* Key for scrolling */
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.file-list-header {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #ccc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.file-list-header h3 {
+  font-size: 1.35rem;
+  margin: 0;
+}
+
+#refresh-scan-list-btn {
+  /* A smaller button for 'Refresh' */
+  font-size: 1rem;
+  font-weight: 600;
+  padding: 0.5rem 0.75rem;
+  margin: 0;
+  width: auto;
+  min-height: 0;
+  background: #666;
+}
+
+#file-list-content {
+  overflow-y: auto;
+  flex-grow: 1; /* This makes the list fill the pane */
+}
+
+/* Style for each file in the list */
+.file-item {
+  padding: 1rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  transition: background-color 0.1s;
+}
+
+.file-item:hover {
+  background-color: #f0f0f0;
+}
+
+.file-item.active {
+  background-color: #003366;
+  color: white;
+}
+
+#plot-pane {
+  flex-grow: 1; /* Plot takes remaining space */
+  display: flex;
+  height: 100%; /* Fill the vertical space */
 }
 
 #view-screen #plot {
-  flex-grow: 1; /* This is the key change */
-  width: min(95vw, 900px); /* Keep existing constraint */
-  height: auto; /* Let flex-grow handle height */
-  min-height: 50vh; /* Ensure it has a good minimum height */
-  margin-bottom: 1rem;
+  width: 100%;
+  height: 100%;
+  min-height: 0; /* Override previous min-height */
+  margin: 0;
 }
 
+/* Make the 'Back' button bar stick to the bottom */
 #view-screen .actions {
-  flex-grow: 0; /* Don't grow the actions bar */
-  flex-shrink: 0; /* Don't shrink it either */
-  width: 100%; /* Make actions bar span width */
-  max-width: 720px; /* Match other button bars */
+  flex-grow: 0;
+  flex-shrink: 0;
+  width: 100%;
+  max-width: 1200px; /* Match container */
+  margin-top: 1rem; /* Space from container */
 }
 
-/* NEW: Style for the file picker modal list */
-#file-picker-list {
-  padding: 0.5rem;
-  font-size: 1.35rem;
-  font-weight: 600;
-  border-radius: 8px;
-  border: 1px solid #ccc;
-  background-color: #fff;
-}
-#file-picker-list option {
-  /* Style for options inside the select box */
-  padding: 0.85rem;
-  font-size: 1.25rem;
-  font-weight: 500;
+/* Responsive Breakpoint: Stack them on small screens */
+@media (max-width: 800px) {
+  #view-container {
+    flex-direction: column;
+    height: calc(100% - 72px); /* Full height minus the 'Back' button */
+  }
+  
+  #file-list-pane {
+    flex-basis: 40vh; /* Take 40% of the vertical height */
+    flex-grow: 0; /* Don't grow */
+  }
+  
+  #plot-pane {
+    flex-basis: 60vh; /* Take 60% */
+    flex-grow: 0;
+  }
+  
+  #view-screen .actions {
+      margin-top: 1rem;
+      height: 72px;
+      padding-bottom: 0;
+  }
 }
 
 /* Slight bump for all selects/inputs globally to maintain consistency */
