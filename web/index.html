@@ -108,13 +108,26 @@
   </section>
 
   <!-- This screen is refactored for touch-friendliness and new UI -->
-  <section id="view-screen" class="screen">
-    <!-- Plot takes up most of the screen -->
-    <div id="plot"></div>
-    <!-- Controls at the bottom -->
-    <div class="actions row">
-      <button class="btn" onclick="openFilePicker()">Choose File</button>
-      <button class="btn secondary" onclick="showScreen('menu-screen')">Back</button>
+<section id="view-screen" class="screen">
+    <div id="view-container">
+      
+      <div id="file-list-pane">
+        <div class="file-list-header">
+          <h3>Available Spectra</h3>
+          <button class="btn" id="refresh-scan-list-btn" onclick="populateFileList()">Refresh</button>
+        </div>
+        <div id="file-list-content">
+          </div>
+      </div>
+      
+      <div id="plot-pane">
+        <div id="plot"></div>
+      </div>
+
+    </div>
+
+    <div class="actions row" style="width: 100%; max-width: 1200px; margin-top: 1rem;">
+      <button class="btn secondary" onclick="showScreen('menu-screen')">Back to Menu</button>
     </div>
   </section>
 
@@ -160,19 +173,6 @@
       <p id="pad-context" style="margin-bottom: 0.5rem;"></p> 
       <input id="pad-display" readonly>
       <div class="keys"></div>
-    </div>
-  </div>
-
-  <!-- NEW File Picker Modal -->
-  <div id="file-picker-modal" class="modal hidden">
-    <div class="pad" style="width: 80vw; max-width: 600px;">
-      <h3 style="margin-bottom: 1rem;">Select a Spectrum File</h3>
-      <!-- This select box will be populated by script.js -->
-      <select id="file-picker-list" size="10" style="width: 100%;"></select>
-      <div class="actions row" style="margin-top: 1rem;">
-        <button class="btn" onclick="loadFileFromPicker()">Load</button>
-        <button class="btn secondary" onclick="closeFilePicker()">Cancel</button>
-      </div>
     </div>
   </div>
 
