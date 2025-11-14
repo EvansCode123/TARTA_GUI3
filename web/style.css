@@ -604,6 +604,12 @@ label, .status, input, select, .subtitle, .version { font-weight: 600; }
   margin-top: 1rem; /* Space from container */
 }
 
+/* Fix for oversized 'Back' button on view-screen */
+#view-screen .actions .btn {
+  flex: 0 1 auto;    /* Stop the button from growing (flex-grow: 0) */
+  max-width: 350px;  /* Give it a normal max-width */
+}
+
 /* Responsive Breakpoint: Stack them on small screens */
 @media (max-width: 800px) {
   #view-container {
