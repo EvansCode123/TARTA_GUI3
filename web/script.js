@@ -62,17 +62,19 @@ function showScreen(id) {
   document.getElementById('header-title').textContent = screenTitles[id] || '';
 
   // ADDED: Clear plot when navigating to view-screen
+  // ADDED: Clear plot when navigating to view-screen
   if (id === 'view-screen') {
     // Clear the plot to avoid showing old data and add placeholder text
     Plotly.newPlot('plot', [], {
-      title: 'Select "Choose File" to load a spectrum',
+      title: 'Select a file from the list to load spectrum', // Updated title
       titlefont: { size: 22 },
       margin: {t: 50, l: 60, r: 20, b: 60}, 
       font: {size: 20}
     });
+    // NEW: Populate the list as soon as the screen is shown
+    populateFileList();
   }
-}
-
+  
 function goBack() {
     showScreen(lastScreenId);
 }
@@ -288,19 +290,34 @@ function abortOp() {
 }
 
 // RENAMED from refreshList and logic UPDATED to populate the modal
-function populateFilePicker() {
+// RENAMED from populateFilePicker and logic UPDATED to populate the new list
+function populateFileList() {
   eel.list_scans()((files) => {
-    const sel = id('file-picker-list');
-    sel.innerHTML = '';
+    const listContent = id('file-list-content');
+    listContent.innerHTML = ''; // Clear old list
+    
     if (files.length === 0) {
-        sel.add(new Option('No files found', ''));
-        sel.disabled = true;
+      listContent.innerHTML = '<p style="padding: 1rem; font-style: italic;">No files found.</p>';
     } else {
-        sel.disabled = false;
-        files.forEach(f => {
-          // 'f' is now a relative path like '1025/file.csv'
-          sel.add(new Option(f, f));
-        });
+      files.forEach(f => {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.textContent = f;
+        item.setAttribute('data-path', f); // Store the path
+        
+        item.onclick = () => {
+          // Remove active class from any other item
+          document.querySelectorAll('#file-list-content .file-item.active').forEach(activeEl => {
+            activeEl.classList.remove('active');
+          });
+          // Add active class to this one
+          item.classList.add('active');
+          
+          // Load the scan
+          loadScan(f);
+        };
+        listContent.appendChild(item);
+      });
     }
   });
 }
