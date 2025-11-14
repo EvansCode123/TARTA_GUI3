@@ -437,6 +437,7 @@ def gdrive_upload_scheduler():
 # --- RPi Controller ---
 class RPIController:
     def __init__(self):
+        self.midnight_clean_done_today = False
         self.operation_thread = None
         self.stop_operation = threading.Event()
         self.gpio_h = None
@@ -596,10 +597,13 @@ class RPIController:
             
             time.sleep(1)
 
-    def run_hourly_monitoring_sequence(self):
+def run_hourly_monitoring_sequence(self):
         """
-        Starts an hourly cycle immediately, unless there are 5 minutes or less left in the hour.
-        If so, it waits for the next hour to start the first full cycle.
+        Starts an hourly cycle.
+        - At midnight (00:00), runs a 20-spark cleaning cycle first.
+        - Pumps until XX:55.
+        - Runs a standard spark cycle at XX:55.
+        - If started after XX:55, waits for the next hour.
         """
         print("Starting new Hourly Monitoring sequence.")
         self.stop_operation.clear()
@@ -612,7 +616,31 @@ class RPIController:
                 spark_start_time = current_hour_start.replace(minute=55)
                 next_hour_start = current_hour_start + datetime.timedelta(hours=1)
 
-                # --- 2. HANDLE LATE START ---
+                # --- 2. (NEW) RESET MIDNIGHT FLAG ---
+                # If it's no longer the midnight hour, reset the flag so it's ready for the *next* day.
+                if current_time.hour != 0:
+                    self.midnight_clean_done_today = False
+
+                # --- 3. (NEW) MIDNIGHT CLEANING STAGE ---
+                # If it's the 00:00 hour AND we haven't run the clean yet today.
+                if current_time.hour == 0 and not self.midnight_clean_done_today:
+                    print("HOURLY: Midnight detected. Running 20-spark cleaning cycle.")
+                    sparks = 20
+                    eel.update_ui(f"HOURLY_MONITOR_STATUS,Midnight Clean: {sparks} sparks,")()
+
+                    for s in range(1, sparks + 1):
+                        if self.stop_operation.is_set():
+                            print("Hourly Monitoring aborted during midnight cleaning.")
+                            return
+                        print(f"HOURLY_MIDNIGHT: Spark {s}/{sparks}")
+                        self._execute_spark_sequence()
+                        if s < sparks:
+                            time.sleep(2)
+                    
+                    print("HOURLY: Midnight cleaning complete.")
+                    self.midnight_clean_done_today = True # Mark as done for today
+
+                # --- 4. HANDLE LATE START ---
                 # If starting with 5 minutes or less left, just wait for the next full hour.
                 if current_time >= spark_start_time:
                     print(f"HOURLY: Less than 5 mins left. Waiting for next full cycle at {next_hour_start.strftime('%H:%M:%S')}")
@@ -628,7 +656,7 @@ class RPIController:
                     # Skip the rest of this loop iteration and start fresh at the new hour.
                     continue
 
-                # --- 3. PUMPING STAGE (This runs only if there is >5 mins left in the hour) ---
+                # --- 5. PUMPING STAGE (This runs only if there is >5 mins left in the hour) ---
                 print(f"HOURLY: In pumping window. Pumping until {spark_start_time.strftime('%H:%M:%S')}")
                 self.set_pump(True)
                 eel.update_ui(f"HOURLY_MONITOR_STATUS,Pumping until {spark_start_time.strftime('%H:%M')},")()
@@ -643,7 +671,7 @@ class RPIController:
                 self.set_pump(False)
                 print("HOURLY: Pumping complete for this cycle.")
 
-                # --- 4. SPARKING STAGE ---
+                # --- 6. STANDARD SPARKING STAGE ---
                 print("HOURLY: Starting spark stage.")
                 sparks = config.get('hourly_sparks', 15)
                 eel.update_ui(f"HOURLY_MONITOR_STATUS,Sparking {sparks} times,")()
@@ -653,24 +681,7 @@ class RPIController:
                         print("Hourly Monitoring aborted during sparking.")
                         return
                     self._execute_spark_sequence()
-                    if s < sparks:
-                        time.sleep(2)
-                print("HOURLY: Sparking complete.")
 
-                # --- 5. WAITING STAGE (For cycles that have finished pumping/sparking) ---
-                print(f"HOURLY: Cycle finished. Waiting for next cycle at {next_hour_start.strftime('%H:%M:%S')}")
-                eel.update_ui(f"HOURLY_MONITOR_STATUS,Waiting for next hour,")()
-                eel.update_ui(f"HOURLY_NEXT_EVENT,{next_hour_start.isoformat()}")()
-
-                while get_rtc_datetime() < next_hour_start:
-                    if self.stop_operation.is_set():
-                        print("Hourly Monitoring aborted during final waiting stage.")
-                        return
-                    time.sleep(1)
-
-            except Exception as e:
-                print(f"An error occurred in hourly monitor: {e}. Retrying in 5 mins.")
-                time.sleep(300)
 
     def start_operation(self, target, *args):
         if self.operation_thread and self.operation_thread.is_alive(): return False
