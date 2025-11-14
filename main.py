@@ -639,8 +639,8 @@ class RPIController:
                 base_value = 300
             
             time.sleep(1)
-
-def run_hourly_monitoring_sequence(self):
+	
+    def run_hourly_monitoring_sequence(self):
         """
         Starts an hourly cycle.
         - At midnight (00:00), runs a 20-spark cleaning cycle first.
@@ -724,6 +724,31 @@ def run_hourly_monitoring_sequence(self):
                         print("Hourly Monitoring aborted during sparking.")
                         return
                     self._execute_spark_sequence()
+                    if s < sparks:
+                        time.sleep(2)
+                print("HOURLY: Sparking complete.")
+
+                # --- 7. WAITING STAGE (For cycles that have finished pumping/sparking) ---
+                print(f"HOURLY: Cycle finished. Waiting for next cycle at {next_hour_start.strftime('%H:%M:%S')}")
+                eel.update_ui(f"HOURLY_MONITOR_STATUS,Waiting for next hour,")()
+                eel.update_ui(f"HOURLY_NEXT_EVENT,{next_hour_start.isoformat()}")()
+
+                while get_rtc_datetime() < next_hour_start:
+                    if self.stop_operation.is_set():
+                        print("Hourly Monitoring aborted during final waiting stage.")
+                        return
+                    time.sleep(1)
+
+            except Exception as e:
+                print(f"An error occurred in hourly monitor: {e}. Retrying in 5 mins.")
+                # We use a blocking sleep here, but check for stop operation
+                # in a loop to remain responsive to stop commands.
+                wait_start = time.time()
+                while (time.time() - wait_start) < 300: # 300 seconds = 5 minutes
+                    if self.stop_operation.is_set():
+                        print("Hourly Monitoring aborted during error-wait.")
+                        return
+                    time.sleep(1)
 
 
     def start_operation(self, target, *args):
