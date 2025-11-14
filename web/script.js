@@ -51,7 +51,6 @@ window.onload = () => {
     };
   }
 };
-
 function showScreen(id) {
   const currentScreen = document.querySelector('.screen.active');
   if (currentScreen) {
@@ -61,7 +60,6 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
   document.getElementById('header-title').textContent = screenTitles[id] || '';
 
-  // ADDED: Clear plot when navigating to view-screen
   // ADDED: Clear plot when navigating to view-screen
   if (id === 'view-screen') {
     // Clear the plot to avoid showing old data and add placeholder text
@@ -74,7 +72,8 @@ function showScreen(id) {
     // NEW: Populate the list as soon as the screen is shown
     populateFileList();
   }
-  
+} 
+
 function goBack() {
     showScreen(lastScreenId);
 }
