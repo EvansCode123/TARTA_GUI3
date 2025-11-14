@@ -14,6 +14,8 @@ import psutil
 import sys
 import socket
 import subprocess
+import urllib.request
+import email.utils
 from pydrive2.auth import GoogleAuth
 from pydrive2.drive import GoogleDrive
 gdrive_upload_lock = threading.Lock()
@@ -143,20 +145,61 @@ def set_rtc_datetime(dt):
         print(f"Error setting RTC time: {e}")
 
 def sync_rtc_with_ntp():
-    """Checks for internet and syncs RTC time with an NTP server."""
+    """
+    Tries to sync RTC with an NTP server.
+    If NTP fails, it falls back to syncing via an HTTP header.
+    """
     if not RPI_MODE:
         return
+
+    # --- 1. Try NTP (Preferred Method) ---
     try:
-        socket.create_connection(("pool.ntp.org", 123), timeout=5)
-        print("Internet connection detected. Attempting to sync RTC with NTP server...")
+        # Use a reliable server like Google's
+        ntp_server = 'time.google.com'
+        
+        # Check for basic internet connection first
+        socket.create_connection((ntp_server, 123), timeout=5)
+        print(f"Internet connection detected. Attempting to sync RTC with NTP ({ntp_server})...")
+        
         client = ntplib.NTPClient()
-        response = client.request('pool.ntp.org', version=3)
-        ntp_time = datetime.datetime.fromtimestamp(response.tx_time)
-        set_rtc_datetime(ntp_time)
-    except (socket.gaierror, socket.timeout):
-        print("No internet connection. Skipping RTC sync.")
+        response = client.request(ntp_server, version=3, timeout=5)
+        ntp_time = datetime.datetime.fromtimestamp(response.tx_time, datetime.timezone.utc)
+        
+        # Convert to local time if your RTC is set to local (or keep as UTC)
+        # Assuming your RTC is in local time:
+        ntp_time_local = ntp_time.astimezone() 
+        
+        set_rtc_datetime(ntp_time_local)
+        print(f"NTP sync successful. Time set to: {ntp_time_local}")
+        return
+
+    except (socket.gaierror, socket.timeout, ntplib.NTPException) as e:
+        print(f"NTP sync failed: {e}")
     except Exception as e:
-        print(f"An error occurred during NTP sync: {e}")
+        print(f"An unexpected error occurred during NTP sync: {e}")
+
+    # --- 2. Fallback to HTTP (If NTP Failed) ---
+    print("Attempting fallback sync via HTTP (port 80)...")
+    try:
+        # We send a 'HEAD' request because we only need the headers, not the page content.
+        # This is much faster.
+        req = urllib.request.Request("http://www.google.com", method='HEAD')
+        
+        with urllib.request.urlopen(req, timeout=5) as r:
+            date_str = r.headers['Date']
+            # Parse the standard HTTP date string into a datetime object
+            http_time_utc = email.utils.parsedate_to_datetime(date_str)
+            
+            # Convert to local time to match NTP logic
+            http_time_local = http_time_utc.astimezone()
+            
+            set_rtc_datetime(http_time_local)
+            print(f"HTTP fallback sync successful. Time set to: {http_time_local}")
+            return
+            
+    except Exception as e:
+        print(f"HTTP fallback sync also failed: {e}")
+        print("Could not sync RTC. Using existing time.")
 
 # --- USB Detection and Saving ---
 def monitor_usb_drives():
